@@ -1,6 +1,11 @@
 @snap_backend_HostAddress = http://localhost:5004
 
-GET {{snap_backend_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{snap_backend_HostAddress}}/api/auth/register
+Content-Type: application/json
 
-###
+{
+  "firstName": "Janko",
+  "lastName": "Markovic",
+  "email": "markovic@example.com",
+  "password": "password"
+}

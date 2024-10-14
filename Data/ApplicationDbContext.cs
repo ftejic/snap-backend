@@ -15,10 +15,18 @@ namespace snap_backend.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Package>()
-            .HasOne(p => p.Courier)
-            .WithMany(u => u.AssignedPackages)
-            .HasForeignKey(p => p.CourierId)
-            .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(p => p.Courier)
+                .WithMany(u => u.AssignedPackages)
+                .HasForeignKey(p => p.CourierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Role)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Package>()
+                .Property(p => p.Status)
+                .HasConversion<string>();
         }
 
 

@@ -1,4 +1,4 @@
-﻿namespace snap_backend.Models
+﻿namespace snap_backend.DTOs
 {
     public class LoginDto
     {

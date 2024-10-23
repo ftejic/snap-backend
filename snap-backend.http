@@ -4,10 +4,10 @@ POST {{snap_backend_HostAddress}}/api/auth/register
 Content-Type: application/json
 
 {
-  "FirstName": "Marko",
-  "LastName": "Markovic",
-  "Email": "markovic@example.com",
-  "Password": "password"
+  "FirstName": "Filip",
+  "LastName": "Tejic",
+  "Email": "admin@snap.com",
+  "Password": "admin"
 }
 
 ###

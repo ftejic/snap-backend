@@ -1,10 +1,13 @@
 ﻿using Azure.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using snap_backend.Data;
+using snap_backend.DTOs;
 using snap_backend.Models;
 using snap_backend.Services;
+using System.Security.Claims;
 
 namespace snap_backend.Controllers
 {
@@ -16,13 +19,14 @@ namespace snap_backend.Controllers
         private readonly TokenService _tokenService;
         private readonly JwtSettings _jwtSettings;
 
-        public AuthController(ApplicationDbContext context, TokenService tokenService,IOptions<JwtSettings> jwtSettings)
+        public AuthController(ApplicationDbContext context, TokenService tokenService, IOptions<JwtSettings> jwtSettings)
         {
             _context = context;
             _tokenService = tokenService;
             _jwtSettings = jwtSettings.Value;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto newUser)
         {
@@ -63,17 +67,21 @@ namespace snap_backend.Controllers
             var accessToken = _tokenService.GenerateAccessToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
-            user.RefreshToken = accessToken;
-            user.RefreshTokenExpiration = DateTime.Now.AddMinutes(_jwtSettings.RefreshTokenExpiration);
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiration = DateTime.Now.AddDays(_jwtSettings.RefreshTokenExpiration);
             await _context.SaveChangesAsync();
 
-            return Ok(new {AccessToken = accessToken, RefreshToken = refreshToken });
+            return Ok(new
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            });
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefresToken([FromBody] string refreshToken)
+        public async Task<IActionResult> RefresToken([FromBody] RefreshTokenRequestDto request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == request.refreshToken);
 
             if (user == null || user.RefreshTokenExpiration <= DateTime.Now)
             {
@@ -89,6 +97,38 @@ namespace snap_backend.Controllers
 
             return Ok(new { AccessToken = newAccessToken, RefreshToken = newRefreshToken });
         }
-           
+
+        [Authorize]
+        [HttpGet("user-info")]
+        public async Task<IActionResult> GetUserInfo()
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "Id")?.Value;
+
+            if (userIdClaim == null)
+            {
+                return Unauthorized(new { message = "Invalid token" });
+            }
+
+            if (!Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return BadRequest(new { message = "Invalid user ID format" });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            return Ok(new
+            {
+                user.Id,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.Role
+            });
+        }
     }
 }
